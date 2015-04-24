@@ -2,17 +2,65 @@ package com.example.ntnu15.android_class;
 
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
 
 public class MainActivity extends ActionBarActivity {
+
+    private Button button;
+    private EditText editText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        button = (Button) findViewById(R.id.send_button);
+        editText = (EditText) findViewById(R.id.editText);
+
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                send();
+            }
+        });
+
+        editText.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                Log.d("debug", "keyCode = " + keyCode);
+                if(keyCode == KeyEvent.KEYCODE_ENTER && event.getAction()==KeyEvent.ACTION_DOWN){
+                    send();
+                    return true;  //讓其他 listner 不執行
+                }
+                return false;
+            }
+        });
+
+        //send();
     }
+
+    private void send(){
+        String text = editText.getText().toString();
+        Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
+        editText.setText("");
+    }
+
+    /*View.OnClickListener listener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+
+        }
+    };*/
+
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
