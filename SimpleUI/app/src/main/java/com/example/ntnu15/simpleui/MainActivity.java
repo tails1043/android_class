@@ -1,6 +1,7 @@
-package com.example.ntnu15.android_class;
+package com.example.ntnu15.simpleui;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.support.v7.app.ActionBarActivity;
@@ -16,6 +17,7 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
@@ -25,6 +27,7 @@ public class MainActivity extends ActionBarActivity {
     private EditText editText;
     private CheckBox checkBox;
     private ListView listView;
+
     private SharedPreferences sp;
     private SharedPreferences.Editor editor;
 
@@ -33,15 +36,16 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        sp = getSharedPreferences("settings", Context.MODE_PRIVATE);
+        editor = sp.edit();
+
         button = (Button) findViewById(R.id.button);
         editText = (EditText) findViewById(R.id.editText);
         checkBox = (CheckBox) findViewById(R.id.checkBox);
         listView = (ListView) findViewById(R.id.listView);
 
-        sp = getSharedPreferences("settings", Context.MODE_PRIVATE);  //設定設定檔
-        editor = sp.edit();
-
-        editText.setText(sp.getString("text", ""));                   //取得設定檔內容並輸出
+        button.setText("SUBMIT");
+        editText.setText(sp.getString("text", ""));
         checkBox.setChecked(sp.getBoolean("checkbox", false));
 
         button.setOnClickListener(new View.OnClickListener() {
@@ -54,22 +58,24 @@ public class MainActivity extends ActionBarActivity {
         editText.setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
+
                 String text = editText.getText().toString();
                 editor.putString("text", text);
-                editor.commit();                             //取得editText的內容並存入設定檔sp
+                editor.commit();
 
                 Log.d("debug", "keyCode = " + keyCode);
-                if (keyCode == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (keyCode == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN){
                     send();
-                    return true;  //讓其他 listner 不執行
+                    return true;
                 }
                 return false;
             }
         });
 
-        checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {  //取得checkBox的狀態並存入設定檔sp
+        checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
                 editor.putBoolean("checkbox", isChecked);
                 editor.commit();
             }
@@ -78,34 +84,36 @@ public class MainActivity extends ActionBarActivity {
         updateHistory();
     }
 
-    private void send(){
-        String text = editText.getText().toString();
-        int i = text.length();
-        if(checkBox.isChecked()){
-            text = "*****";
-        }
-        Utils.writeFile(this, "history", text + "\n");
-        Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
-        editText.setText("");
+    public void goToOrderActivity(View view) {
+        Intent intent = new Intent();
+        intent.setClass(this, OrderActivity.class);
+        startActivity(intent);
 
-        updateHistory();
     }
 
     private void updateHistory() {
 
         String[] data = Utils.readFile(this, "history").split("\n");
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, data);
+        ArrayAdapter<String> adapter =
+                new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, data);
 
         listView.setAdapter(adapter);
-
     }
 
-    public void goToOrderActivity(View view) {
-        Intent intent = new Intent();
-        intent.setClass(this, OrderActivity.class);
-        startActivity(intent);
+    private void send() {
 
+        String text = editText.getText().toString();
+        if (checkBox.isChecked()) {
+            text = "*****";
+        }
+
+        Utils.writeFile(this, "history", text + "\n");
+
+        Toast.makeText(this, text, Toast.LENGTH_LONG).show();
+        editText.setText("");
+
+        updateHistory();
     }
 
     @Override
@@ -128,5 +136,20 @@ public class MainActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    View.OnClickListener listener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            send();
+        }
+    };
+
+    class MyOnClickListner implements View.OnClickListener {
+
+        @Override
+        public void onClick(View v) {
+
+        }
     }
 }
