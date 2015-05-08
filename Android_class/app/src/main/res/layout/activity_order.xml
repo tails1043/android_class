@@ -7,6 +7,13 @@
     tools:context="com.example.ntnu15.android_class.OrderActivity"
     android:orientation="vertical">
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text"
+        android:id="@+id/storeName"
+        android:layout_gravity="center_horizontal" />
+
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="match_parent"
@@ -64,4 +71,29 @@
             android:layout_weight="1"
             android:onClick="cnt" />
     </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal">
+
+        <Button
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Reset"
+            android:id="@+id/button3"
+            android:layout_weight="1"
+            android:onClick="reset" />
+
+        <Button
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="OK"
+            android:id="@+id/button4"
+            android:layout_weight="1"
+            android:onClick="ok" />
+
+    </LinearLayout>
+
 </LinearLayout>

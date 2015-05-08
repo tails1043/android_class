@@ -16,27 +16,59 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.SimpleAdapter;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 
+import com.parse.Parse;
+import com.parse.ParseObject;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+
 public class MainActivity extends ActionBarActivity {
+
+    private static final int REQUEST_CODE_ORDER_ACTIVITY = 0;
 
     private Button button;
     private EditText editText;
     private CheckBox checkBox;
     private ListView listView;
+    private Spinner spinner;
+
     private SharedPreferences sp;
     private SharedPreferences.Editor editor;
+
+    private JSONArray orderInfo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
+        Parse.enableLocalDatastore(this);
+        Parse.initialize(this, "bJDGykyTKBVUTLhxJYDAYFozFHnVtHySdC7lb0YN", "dt61u5zFUDWUK21epwMFDBrYFQjszPwKDOEngRal");
+
+        ParseObject testObject = new ParseObject("TestObject");
+        testObject.put("foo", "bar");
+        testObject.saveInBackground();
+
+
         button = (Button) findViewById(R.id.button);
         editText = (EditText) findViewById(R.id.editText);
         checkBox = (CheckBox) findViewById(R.id.checkBox);
         listView = (ListView) findViewById(R.id.listView);
+        spinner = (Spinner) findViewById(R.id.spinner);
 
         sp = getSharedPreferences("settings", Context.MODE_PRIVATE);  //設定設定檔
         editor = sp.edit();
@@ -76,35 +108,115 @@ public class MainActivity extends ActionBarActivity {
         });
 
         updateHistory();
+        setStoreName();
+
     }
 
     private void send(){
+
         String text = editText.getText().toString();
-        int i = text.length();
+
         if(checkBox.isChecked()){
             text = "*****";
         }
-        Utils.writeFile(this, "history", text + "\n");
-        Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
-        editText.setText("");
+
+
+        try {
+            JSONObject all = new JSONObject();
+            all.put("note", text);
+            all.put("order", orderInfo);
+            all.put("storeName", (String) spinner.getSelectedItem());
+
+            //Utils.writeFile(this, "history", text + "\n");
+            Utils.writeFile(this, "history", all.toString() + "\n");
+            Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
+            editText.setText("");
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
 
         updateHistory();
+
+    }
+
+    private int getDrinkNumber(JSONArray array){
+        return new Random().nextInt();
     }
 
     private void updateHistory() {
 
-        String[] data = Utils.readFile(this, "history").split("\n");
+        String[] rawdata = Utils.readFile(this, "history").split("\n");
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, data);
+        List<Map<String, String>> data = new ArrayList<>();
+
+        for(int i=0 ; i < rawdata.length ; i++){
+            try {
+                JSONObject object = new JSONObject(rawdata[i]);
+                String storeName = object.getString("storeName");
+                String note = object.getString("note");
+                JSONArray order = object.getJSONArray("order");
+
+                Map<String, String> item = new HashMap<>();
+                item.put("storeName", storeName);
+                item.put("note", note);
+                item.put("order", String.valueOf(getDrinkNumber(order)));
+
+                data.add(item);
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+        //ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, rawdata);
+
+        String[] from = {"storeName", "note", "drinkNumber"};
+        int[] to = {R.id.storeName, R.id.note, R.id.number};
+        SimpleAdapter adapter = new SimpleAdapter(this, data, R.layout.listview_item, from, to);
 
         listView.setAdapter(adapter);
 
     }
 
+    public void setStoreName(){
+
+        //String [] storeNames = {"NTU", "NTNU", "NTUST"};
+        String [] storeNames = getResources().getStringArray(R.array.storeName);  //從xml中取得 storeName
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, storeNames);
+
+        spinner.setAdapter(adapter);
+
+     }
+
     public void goToOrderActivity(View view) {
+
         Intent intent = new Intent();
         intent.setClass(this, OrderActivity.class);
-        startActivity(intent);
+        //startActivity(intent);   //跳到 Activity 不回傳值
+        intent.putExtra("storeName", (String) spinner.getSelectedItem());  //跳到 Activity 時傳出資料
+        startActivityForResult(intent, REQUEST_CODE_ORDER_ACTIVITY);  //跳到 Activity 並接收資料
+
+
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {  //複寫此 function 接收回傳的 data
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if(requestCode == REQUEST_CODE_ORDER_ACTIVITY){
+            if(resultCode == RESULT_OK){
+                String jsonArrayString = data.getStringExtra("orders");
+                try {
+                    orderInfo = new JSONArray(jsonArrayString);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                Toast.makeText(this, jsonArrayString, Toast.LENGTH_LONG).show();
+            }
+        }
 
     }
 

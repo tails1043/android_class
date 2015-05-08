@@ -1,31 +1,56 @@
 package com.example.ntnu15.android_class;
 
+import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 
 public class OrderActivity extends ActionBarActivity {
 
+    private TextView textView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_order);
+
+        String storeName = getIntent().getStringExtra("storeName");
+        textView = (TextView) findViewById(R.id.storeName);
+        textView.setText(storeName);
     }
 
     public void cnt(View view){  //取得view並將文字數量+1
         Button button = (Button) view;
         int i = Integer.parseInt((String) button.getText());
         button.setText(String.valueOf(i + 1));
+        getData();
     }
 
-    private void getData(){
+    public void reset(View view){
+
+    }
+
+    public void ok(View view){
+
+        Intent data = new Intent();
+        data.putExtra("orders", getData().toString());
+        setResult(RESULT_OK, data);
+
+        finish();
+    }
+
+    private JSONArray getData(){
+
         String blackTeaM = ((Button)findViewById(R.id.black_tea_m)).getText().toString();
         String blackTeaL = ((Button)findViewById(R.id.black_tea_l)).getText().toString();
         String milkTeaM = ((Button)findViewById(R.id.milk_tea_m)).getText().toString();
@@ -34,9 +59,27 @@ public class OrderActivity extends ActionBarActivity {
         try {
             JSONObject blackTea = new JSONObject();
             blackTea.put("name", "black-tea");
+            blackTea.put("l", Integer.parseInt(blackTeaL));
+            blackTea.put("m", Integer.parseInt(blackTeaM));
+
+            JSONObject milkTea = new JSONObject();
+            milkTea.put("name", "milk-tea");
+            milkTea.put("l", Integer.parseInt(milkTeaL));
+            milkTea.put("m", Integer.parseInt(milkTeaM));
+
+            JSONArray orders = new JSONArray();
+            orders.put(blackTea);
+            orders.put(milkTea);
+
+            return orders;
+
+            //Log.d("debug", orders.toString());
+
         } catch (JSONException e) {
             e.printStackTrace();
         }
+
+        return null;
 
     }
 
