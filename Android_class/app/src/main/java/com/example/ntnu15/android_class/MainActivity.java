@@ -1,5 +1,6 @@
 package com.example.ntnu15.android_class;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -21,8 +22,12 @@ import android.widget.Spinner;
 import android.widget.Toast;
 
 
+import com.parse.FindCallback;
 import com.parse.Parse;
+import com.parse.ParseException;
 import com.parse.ParseObject;
+import com.parse.ParseQuery;
+import com.parse.SaveCallback;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -45,6 +50,8 @@ public class MainActivity extends ActionBarActivity {
     private ListView listView;
     private Spinner spinner;
 
+    private ProgressDialog progressDialog;
+
     private SharedPreferences sp;
     private SharedPreferences.Editor editor;
 
@@ -55,13 +62,9 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
+        // Enable Local Datastore.
         Parse.enableLocalDatastore(this);
         Parse.initialize(this, "bJDGykyTKBVUTLhxJYDAYFozFHnVtHySdC7lb0YN", "dt61u5zFUDWUK21epwMFDBrYFQjszPwKDOEngRal");
-
-        ParseObject testObject = new ParseObject("TestObject");
-        testObject.put("foo", "bar");
-        testObject.saveInBackground();
 
 
         button = (Button) findViewById(R.id.button);
@@ -69,6 +72,8 @@ public class MainActivity extends ActionBarActivity {
         checkBox = (CheckBox) findViewById(R.id.checkBox);
         listView = (ListView) findViewById(R.id.listView);
         spinner = (Spinner) findViewById(R.id.spinner);
+
+        progressDialog = new ProgressDialog(this);
 
         sp = getSharedPreferences("settings", Context.MODE_PRIVATE);  //設定設定檔
         editor = sp.edit();
@@ -120,7 +125,6 @@ public class MainActivity extends ActionBarActivity {
             text = "*****";
         }
 
-
         try {
             JSONObject all = new JSONObject();
             all.put("note", text);
@@ -129,7 +133,26 @@ public class MainActivity extends ActionBarActivity {
 
             //Utils.writeFile(this, "history", text + "\n");
             Utils.writeFile(this, "history", all.toString() + "\n");
-            Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
+            //Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
+
+            ParseObject testObject = new ParseObject("Order");  //class name
+            testObject.put("note", text);                       //column name & value
+            testObject.put("order", orderInfo);
+            testObject.put("storeName", (String) spinner.getSelectedItem());
+            testObject.saveInBackground(new SaveCallback() {
+                @Override
+                public void done(ParseException e) {
+                    if (e == null) {
+                        Toast.makeText(MainActivity.this, "saved", Toast.LENGTH_SHORT).show();
+                    } else {
+                        e.printStackTrace();
+                    }
+                    Log.d("debug", "inside SaveCallback");
+                }
+            });
+
+            Log.d("debug", "outside SaveCallback");
+
             editText.setText("");
 
         } catch (JSONException e) {
@@ -146,6 +169,11 @@ public class MainActivity extends ActionBarActivity {
 
     private void updateHistory() {
 
+        progressDialog.setTitle("Loading...");
+        //progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        /*
         String[] rawdata = Utils.readFile(this, "history").split("\n");
 
         List<Map<String, String>> data = new ArrayList<>();
@@ -168,8 +196,6 @@ public class MainActivity extends ActionBarActivity {
                 e.printStackTrace();
             }
         }
-
-
         //ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, rawdata);
 
         String[] from = {"storeName", "note", "drinkNumber"};
@@ -177,17 +203,84 @@ public class MainActivity extends ActionBarActivity {
         SimpleAdapter adapter = new SimpleAdapter(this, data, R.layout.listview_item, from, to);
 
         listView.setAdapter(adapter);
+        */
+
+
+        ParseQuery<ParseObject> query = new ParseQuery<ParseObject>("Order");
+        query.findInBackground(new FindCallback<ParseObject>() {        //query 可加條件
+            @Override
+            public void done(List<ParseObject> list, ParseException e) {
+                if (e == null) {
+                    List<Map<String, String>> data = new ArrayList<>();
+                    for(ParseObject object : list){
+                        String storeName = object.getString("storeName");
+                        String note = object.getString("note");
+                        JSONArray order = object.getJSONArray("order");
+
+                        Map<String, String> item = new HashMap<>();
+                        item.put("storeName", storeName);
+                        item.put("note", note);
+                        item.put("order", String.valueOf(getDrinkNumber(order)));
+
+                        data.add(item);
+                    }
+                    /*
+                    for (int i = 0; i < list.size(); i++) {
+                        String storeName = list.get(i).getString("storeName");
+                        String note = list.get(i).getString("note");
+                        JSONArray order = list.get(i).getJSONArray("order");
+
+                        Map<String, String> item = new HashMap<>();
+                        item.put("storeName", storeName);
+                        item.put("note", note);
+                        item.put("order", String.valueOf(getDrinkNumber(order)));
+
+                        data.add(item);
+
+                    }*/
+                    String[] from = {"storeName", "note", "drinkNumber"};
+                    int[] to = {R.id.storeName, R.id.note, R.id.number};
+                    SimpleAdapter adapter = new SimpleAdapter(MainActivity.this, data, R.layout.listview_item, from, to);
+
+                    listView.setAdapter(adapter);
+
+                    progressDialog.dismiss();
+
+                } else {
+                    e.printStackTrace();
+                }
+
+            }
+        });
 
     }
 
     public void setStoreName(){
 
-        //String [] storeNames = {"NTU", "NTNU", "NTUST"};
-        String [] storeNames = getResources().getStringArray(R.array.storeName);  //從xml中取得 storeName
+        //String [] storeNames = {"NTU", "NTNU", "NTUST"};    //固定的storeName
+        //String [] storeNames = getResources().getStringArray(R.array.storeName);  //從xml中取得 storeName
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, storeNames);
+        ParseQuery<ParseObject> query = new ParseQuery<ParseObject>("StoreInfo");   //要query的class name
+        query.findInBackground(new FindCallback<ParseObject>() {
+            @Override
+            public void done(List<ParseObject> list, ParseException e) {
+                if(e ==null){
+                    String [] storeNames = new String[list.size()];
+                    for(int i = 0; i < list.size() ; i++){
+                        String name = list.get(i).getString("name");
+                        String address = list.get(i).getString("address");
+                        storeNames[i] = name + ", " + address;
+                    }
+                    ArrayAdapter<String> adapter = new ArrayAdapter<>(MainActivity.this, android.R.layout.simple_spinner_item, storeNames);
+                    spinner.setAdapter(adapter);
+                }else{
+                    e.printStackTrace();
+                }
+            }
+        });
 
-        spinner.setAdapter(adapter);
+        //ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, storeNames);
+        //spinner.setAdapter(adapter);
 
      }
 
