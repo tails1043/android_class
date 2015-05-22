@@ -148,10 +148,15 @@ public class MainActivity extends ActionBarActivity {
                 ParseFile file = order.getParseFile("photo");
                 JSONArray array = order.getJSONArray("order");
 
+                JSONObject location = locationList.get(position);
+
                 Intent intent = new Intent();
                 intent.setClass(MainActivity.this, OrderDetailActivity.class);
 
                 try {
+                    intent.putExtra("lat", location.getDouble("lat"));
+                    intent.putExtra("lng", location.getDouble("lng"));
+
                     intent.putExtra("note", note);
                     intent.putExtra("storeName", storeName);
                     if (file != null) {
@@ -159,6 +164,8 @@ public class MainActivity extends ActionBarActivity {
                     }
                     intent.putExtra("array",array.toString());
                 } catch (ParseException e) {
+                    e.printStackTrace();
+                } catch (JSONException e) {
                     e.printStackTrace();
                 }
 
@@ -200,7 +207,78 @@ public class MainActivity extends ActionBarActivity {
     };
     */
 
+    private List<JSONObject> locationList;
 
+    private AsyncTask<Object, Void, JSONObject> findAddressTask = new AsyncTask<Object, Void, JSONObject>() {
+        int index;
+
+        // 0: (string)address, 1: (int)index
+        @Override
+        protected JSONObject doInBackground(Object... params) {
+            index = (int) params[1];
+
+            JSONObject jsonObject = Utils.addressToLocation((String) params[0]);
+            return jsonObject;
+        }
+
+        @Override
+        protected void onPostExecute(JSONObject jsonObject) {
+            Log.d("debug", jsonObject.toString());
+            locationList.add(index, jsonObject);
+        }
+    };
+
+
+    class FindAddressTask extends AsyncTask<Object, Void, JSONObject> {
+
+        int index;
+
+        // 0: (string)address, 1: (int)index
+        @Override
+        protected JSONObject doInBackground(Object... params) {
+            index = (int) params[1];
+
+            JSONObject jsonObject = Utils.addressToLocation((String) params[0]);
+            return jsonObject;
+        }
+
+        @Override
+        protected void onPostExecute(JSONObject jsonObject) {
+            Log.d("debug", jsonObject.toString());
+            locationList.add(index, jsonObject);
+        }
+    }
+
+    public void setStoreName() {
+        ParseQuery<ParseObject> query = new ParseQuery<>("StoreInfo");
+        query.findInBackground(new FindCallback<ParseObject>() {
+            @Override
+            public void done(List<ParseObject> list, ParseException e) {
+                if (e == null) {
+                    String[] storeNames = new String[list.size()];
+
+                    locationList = new ArrayList<JSONObject>(list.size());
+
+                    for (int i = 0; i < list.size(); i++) {
+                        String name = list.get(i).getString("name");
+                        String address = list.get(i).getString("address");
+
+//                        findAddressTask.execute(address, i);
+
+                        FindAddressTask fat = new FindAddressTask();
+                        fat.execute(address, i);
+
+                        storeNames[i] = name + "," + address;
+                    }
+                    ArrayAdapter<String> adapter =
+                            new ArrayAdapter<>(MainActivity.this, android.R.layout.simple_spinner_item, storeNames);
+
+                    spinner.setAdapter(adapter);
+                }
+            }
+        });
+    }
+    /*
     class FetchAddress implements Runnable{
         @Override
         public void run() {
@@ -210,7 +288,7 @@ public class MainActivity extends ActionBarActivity {
             Log.d("debug", location.toString());
         }
     }
-
+    */
 
     private void send(){
 
@@ -383,6 +461,7 @@ public class MainActivity extends ActionBarActivity {
 
     }
 
+    /*
     public void setStoreName(){
 
         //String [] storeNames = {"NTU", "NTNU", "NTUST"};    //固定的storeName
@@ -413,6 +492,7 @@ public class MainActivity extends ActionBarActivity {
         //spinner.setAdapter(adapter);
 
      }
+     */
 
     public void goToOrderActivity(View view) {
 

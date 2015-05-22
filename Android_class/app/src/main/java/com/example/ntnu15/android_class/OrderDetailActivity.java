@@ -10,8 +10,12 @@ import android.view.MenuItem;
 import android.webkit.WebView;
 import android.widget.TextView;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
+import com.google.android.gms.maps.model.GroundOverlayOptions;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -50,9 +54,29 @@ public class OrderDetailActivity extends ActionBarActivity {
 
         MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
         GoogleMap googleMap = mapFragment.getMap();
-        
-        //googleMap.getMapType();
 
+        //googleMap.getMapType();
+        initGoogleMaps();
+
+    }
+
+    public void initGoogleMaps(){
+
+        //LatLng latLng = new LatLng(25.017273, 121.542012);
+
+        double lat = getIntent().getDoubleExtra("lat", 0);
+        double lng = getIntent().getDoubleExtra("lng", 0);
+        LatLng latLng = new LatLng(lat, lng);
+
+        MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
+        GoogleMap googleMap = mapFragment.getMap();
+        //googleMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(25.017273, 121.542012)));
+        //googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16));
+        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 16));
+
+
+        MarkerOptions markerOptions = new MarkerOptions().position(latLng).title("here");
+        googleMap.addMarker(markerOptions);
 
     }
 
