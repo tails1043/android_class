@@ -27,6 +27,7 @@ import android.widget.Spinner;
 import android.widget.Toast;
 
 
+import com.facebook.FacebookSdk;
 import com.parse.FindCallback;
 import com.parse.Parse;
 import com.parse.ParseException;
@@ -71,7 +72,12 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        FacebookSdk.sdkInitialize(getApplicationContext());   //放前面!!!!!
+
         setContentView(R.layout.activity_main);
+
+
 
         //ParseObject testObject = new ParseObject("TestObject");
         //testObject.put("foo", "bar");
